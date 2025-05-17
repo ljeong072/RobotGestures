@@ -12,10 +12,7 @@ import cv2
 import numpy as np
 from tkinter import *
 from PIL import Image, ImageTk
-
-
 from pickle import dump, load
-
 
 class Gesture:
     def __init__(self, results):
@@ -24,39 +21,33 @@ class Gesture:
 
         while results.multi_handedness:
             handedness = results.multi_handedness.pop()
-            index = min(
-                handedness.classification[0].index,
-                len(results.multi_hand_landmarks) - 1,
-            )
-            if handedness.classification[0].label == "Right":
-                right = np.array(
-                    Gesture.parse_landmarks(results.multi_hand_landmarks[index])
-                )
+            index = min(handedness.classification[0].index, len(results.multi_hand_landmarks) - 1)
+            if handedness.classification[0].label == 'Right':
+                right = np.array(Gesture.parse_landmarks(results.multi_hand_landmarks[index]))
                 self.right = right - right[0]
             else:
-                left = np.array(
-                    Gesture.parse_landmarks(results.multi_hand_landmarks[index])
-                )
+                left = np.array(Gesture.parse_landmarks(results.multi_hand_landmarks[index]))
                 self.left = left - left[0]
 
     @staticmethod
     def parse_landmarks(landmarks):
-        return list(
-            map(
-                lambda landmark: (landmark.x, landmark.y, landmark.z),
-                landmarks.landmark,
-            )
-        )
+        return list(map(lambda landmark : (landmark.x, landmark.y, landmark.z), landmarks.landmark))
 
     def save(self, filename):
-        with open(filename, "wb") as file:
+        with open(filename, 'wb') as file:
             dump(self, file)
 
     @staticmethod
     def load(filename):
-        with open(filename, "rb") as file:
+        with open(filename, 'rb') as file:
             return load(file)
 
+    def get_difference(self, other):
+        if (self.left is not None) and (other.left is not None):
+            return np.mean(np.linalg.norm(self.left - other.left, axis=1))
+
+        if (self.right is not None) and (other.right is not None):
+            return np.mean(np.linalg.norm(self.right - other.right, axis=1))
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -109,6 +100,16 @@ class App:
 
         new_window = Toplevel()
         new_window.title("New Window")
+        # take saved gestures and print them all out
+
+        gesture_files = os.listdir("./gestures")
+        gesture_set = []
+        for saved_gesture in gesture_files:
+            gesture_set.append(Gesture.load(f"./gestures/{saved_gesture}"))
+
+        print(gesture_set)
+
+        # End of gesture functionality
         label = Label(new_window, text="This is a new window")
         label.pack()
 
@@ -116,6 +117,10 @@ class App:
 
     def save_gesture(self, frame):
         """Save the current frame as a PNG image"""
+        # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        gestures = os.listdir('./gestures')
+        results = hands.process(self.frame)
+        Gesture(results).save(f"./gestures/gesture{len(gestures)}.pkl")
         return
 
     def take_screenshot(self):
