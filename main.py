@@ -41,6 +41,9 @@ class BrowserMacro:
         self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "t")
         self.driver.get(link)
 
+    def close_tab(self):
+        self.driver.find_element_by_tag_name("body").send_keys(Keys.CONTROL + "w")
+
 
 def is_open_palm(hand_landmarks):
     finger_tips = [8, 12, 16, 20]
