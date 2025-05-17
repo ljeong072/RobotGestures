@@ -109,6 +109,16 @@ class App:
 
         new_window = Toplevel()
         new_window.title("New Window")
+        # take saved gestures and print them all out
+
+        gesture_files = os.listdir("./gestures")
+        gesture_set = []
+        for saved_gesture in gesture_files:
+            gesture_set.append(Gesture.load(f"./gestures/{saved_gesture}"))
+
+        print(gesture_set)
+
+        # End of gesture functionality
         label = Label(new_window, text="This is a new window")
         label.pack()
 
