@@ -39,14 +39,12 @@ class BrowserMacro:
         self.driver.forward()
 
     def quick_open_link(self, link):
-        # self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "t")
-        self.driver.get(link)
         self.driver.execute_script("window.open('');")
-        # self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.COMMAND + "t")
+        self.driver.switch_to.window(self.driver.window_handles[-1])
+        self.driver.get(link)
 
     def close_tab(self):
-        # self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "w")
-        # self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.COMMAND + "w")
+        self.driver.execute_script("window.close('');")
 
 
 def is_open_palm(hand_landmarks):
