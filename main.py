@@ -144,16 +144,20 @@ class App:
         """Start the camera capture process"""
         self.is_camera_running = True
         self.process_frame()
-        self.button1.config(text="Close Camera", command=self.close_camera)
 
     def close_camera(self):
         """Stop the camera capture process"""
         self.is_camera_running = False
-        self.button1.config(text="Open Camera", command=self.open_camera)
 
     def process_frame(self):
         """Process a single frame and schedule the next one"""
         if not self.is_camera_running:
+            self.app.after(50, self.process_frame)
+            return
+
+        if self.frame_count % 2 == 0:  # Only draw every other frame
+            self.frame_count += 1
+            self.app.after(50, self.process_frame)
             return
 
         ret, self.frame = self.cap.read()
@@ -166,31 +170,27 @@ class App:
 
             # Process hand landmarks if detected
             if results.multi_hand_landmarks:
-                # Consider skipping some frames for drawing
-                if self.frame_count % 2 == 0:  # Only draw every other frame
-                    for hand_landmarks in results.multi_hand_landmarks:
-                        self.mp_drawing.draw_landmarks(
-                            display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
-                        )
+                for hand_landmarks in results.multi_hand_landmarks:
+                    self.mp_drawing.draw_landmarks(
+                        display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                    )
 
-                    current_time = time.time()
+                current_time = time.time()
 
-                    if is_open_palm(hand_landmarks):
-                        if current_time - self.last_action_time > self.cooldown_seconds:
-                            print("Gesture: Open Palm - Opening new tab")
-                            # Send Ctrl+W or Cmd+W to browser via Selenium
-                            browser_controller.quick_open_link(
-                                "https://www.youtube.com"
-                            )
-                            self.last_action_time = current_time
+                if is_open_palm(hand_landmarks):
+                    if current_time - self.last_action_time > self.cooldown_seconds:
+                        print("Gesture: Open Palm - Opening new tab")
+                        # Send Ctrl+W or Cmd+W to browser via Selenium
+                        browser_controller.quick_open_link("https://www.youtube.com")
+                        self.last_action_time = current_time
 
-                    elif is_fist(hand_landmarks):
-                        if current_time - self.last_action_time > self.cooldown_seconds:
-                            print("Gesture: Fist - Closing tab")
-                            # Send Ctrl+T or Cmd+T to browser via Selenium
-                            browser_controller.close_tab()
+                elif is_fist(hand_landmarks):
+                    if current_time - self.last_action_time > self.cooldown_seconds:
+                        print("Gesture: Fist - Closing tab")
+                        # Send Ctrl+T or Cmd+T to browser via Selenium
+                        browser_controller.close_tab()
 
-                            self.last_action_time = current_time
+                        self.last_action_time = current_time
             # Use the frame with landmarks drawn on it
             captured_image = Image.fromarray(display_frame)
 
@@ -201,10 +201,11 @@ class App:
             self.label_widget.photo_image = photo_image
             self.label_widget.configure(image=photo_image)
 
-            self.frame_count += 1
-
             # Schedule the next frame
             self.app.after(50, self.process_frame)
+
+        # Update the frame count
+        self.frame_count += 1
 
 
 class BrowserMacro:
