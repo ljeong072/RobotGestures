@@ -10,6 +10,9 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 import cv2
 import numpy as np
+from tkinter import *
+from PIL import Image, ImageTk
+
 
 from pickle import dump, load
 
@@ -54,8 +57,6 @@ class Gesture:
         with open(filename, "rb") as file:
             return load(file)
 
-
-from selenium.webdriver.common.by import By
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -235,49 +236,34 @@ class BrowserMacro:
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.7)
-mp_drawing = mp.solutions.drawing_utils
-
-cap = cv2.VideoCapture(0)
 
 modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
-
-# Setup Selenium WebDriver
-driver = webdriver.Chrome()
-driver.get("https://www.google.com")
-actions = ActionChains(driver)
 
 gesture_files = os.listdir("./gestures")
 gesture_set = []
 for saved_gesture in gesture_files:
     gesture_set.append(Gesture.load(f"./gestures/{saved_gesture}"))
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        continue
 
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(frame_rgb)
-    gesture = Gesture(results)
-
-    match_found = True
-    for saved_gesture in gesture_set:
-        print(saved_gesture.get_difference(gesture))
-
-    if len(gesture_set) == 0 and gesture.right is not None:
-        gesture.save("./gestures/Gesture")
-        gesture_set.append(gesture)
-        print("First gesture added")
-
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-
-    cv2.imshow("Hand Recognition", frame)
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+def is_open_palm(hand_landmarks):
+    finger_tips = [8, 12, 16, 20]
+    finger_pips = [6, 10, 14, 18]
+    open_fingers = 0
+    for tip, pip in zip(finger_tips, finger_pips):
+        if hand_landmarks.landmark[tip].y < hand_landmarks.landmark[pip].y:
+            open_fingers += 1
+    return open_fingers >= 4
 
 
-cap.release()
-cv2.destroyAllWindows()
-driver.quit()
+def is_fist(hand_landmarks):
+    finger_tips = [8, 12, 16, 20]
+    finger_pips = [6, 10, 14, 18]
+    folded_fingers = 0
+    for tip, pip in zip(finger_tips, finger_pips):
+        if hand_landmarks.landmark[tip].y > hand_landmarks.landmark[pip].y:
+            folded_fingers += 1
+    return folded_fingers >= 4
+
+
+browser_controller = BrowserMacro()
+app = App()

@@ -5,3 +5,4 @@ mediapipe
 selenium
 pyautogui
 webdriver-manager
+PIL
