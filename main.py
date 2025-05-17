@@ -5,6 +5,8 @@ import platform
 import pyautogui
 import subprocess
 import sys
+from tkinter import *
+from PIL import Image, ImageTk
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
@@ -14,13 +16,109 @@ from selenium.webdriver.common.by import By
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
-mp_drawing = mp.solutions.drawing_utils
 
-cap = cv2.VideoCapture(0)
 
-last_action_time = 0
-cooldown_seconds = 2
 modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
+
+
+class App:
+    def __init__(self):
+        self.cap = cv2.VideoCapture(0)
+        self.mp_drawing = mp.solutions.drawing_utils
+
+        self.width = 1200
+        self.height = 720
+        self.is_camera_running = False
+
+        self.last_action_time = 0
+        self.cooldown_seconds = 2
+
+        # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+
+        self.app = Tk()
+        self.app.title("Gestures Capture")
+
+        self.app.bind("<Escape>", lambda e: self.app.quit())
+
+        self.label_widget = Label(self.app)
+        self.label_widget.pack()
+
+        self.button1 = Button(self.app, text="Open Camera", command=self.open_camera)
+        self.button1.pack()
+
+        self.app.mainloop()
+
+    def __del__(self):
+        self.cap.release()
+        cv2.destroyAllWindows()
+
+    def open_camera(self):
+        """Start the camera capture process"""
+        self.is_camera_running = True
+        self.process_frame()
+        self.button1.config(text="Close Camera", command=self.close_camera)
+
+    def close_camera(self):
+        """Stop the camera capture process"""
+        self.is_camera_running = False
+        self.button1.config(text="Open Camera", command=self.open_camera)
+
+    def process_frame(self):
+        """Process a single frame and schedule the next one"""
+        if not self.is_camera_running:
+            return
+
+        ret, frame = self.cap.read()
+        if ret:
+            # Convert to RGB (not RGBA) for MediaPipe
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            results = hands.process(frame_rgb)
+
+            # Process hand landmarks if detected
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    self.mp_drawing.draw_landmarks(
+                        frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                    )
+                    current_time = time.time()
+
+                    if is_open_palm(hand_landmarks):
+                        if current_time - self.last_action_time > self.cooldown_seconds:
+                            print("Gesture: Open Palm - Opening new tab")
+                            # Send Ctrl+W or Cmd+W to browser via Selenium
+                            browser_controller.quick_open_link(
+                                "https://www.youtube.com"
+                            )
+                            self.last_action_time = current_time
+
+                    elif is_fist(hand_landmarks):
+                        if current_time - self.last_action_time > self.cooldown_seconds:
+                            print("Gesture: Fist - Closing tab")
+                            # Send Ctrl+T or Cmd+T to browser via Selenium
+                            browser_controller.close_tab()
+
+                            self.last_action_time = current_time
+
+                            browser_controller.actions.key_down(modifier_key).send_keys(
+                                "w"
+                            ).key_up(modifier_key).perform()
+                            self.last_action_time = current_time
+
+        # Capture the latest frame and transform to image
+        captured_image = Image.fromarray(frame_rgb)
+
+        # Convert captured image to photoimage
+        photo_image = ImageTk.PhotoImage(image=captured_image)
+
+        # Displaying photoimage in the label
+        self.label_widget.photo_image = photo_image
+
+        # Configure image in the label
+        self.label_widget.configure(image=photo_image)
+
+        # Schedule the next frame processing after 10ms
+        self.app.after(10, self.process_frame)
 
 
 class BrowserMacro:
@@ -102,44 +200,7 @@ def is_fist(hand_landmarks):
 
 
 browser_controller = BrowserMacro()
-
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        continue
-
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(frame_rgb)
-
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            current_time = time.time()
-
-            if is_open_palm(hand_landmarks):
-                if current_time - last_action_time > cooldown_seconds:
-                    print("Gesture: Open Palm - Opening new tab")
-                    browser_controller.open_app("/Applications/Firefox.app")
-                    last_action_time = current_time
-
-            elif is_fist(hand_landmarks):
-                if current_time - last_action_time > cooldown_seconds:
-                    print("Gesture: Fist - Closing tab")
-                    last_action_time = current_time
-
-                    browser_controller.actions.key_down(modifier_key).send_keys(
-                        "w"
-                    ).key_up(modifier_key).perform()
-                    last_action_time = current_time
-
-    cv2.imshow("Hand Recognition", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-
+app = App()
 
 """
 import cv2
