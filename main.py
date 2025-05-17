@@ -49,12 +49,25 @@ class App:
             self.app, text="Capture Gesture", command=self.take_screenshot
         )
         self.button2.pack()
+        self.button3 = Button(self.app, text="Open Gestures", command=self.switch_tab)
+        self.button3.pack()
 
         self.app.mainloop()
 
     def __del__(self):
         self.cap.release()
         cv2.destroyAllWindows()
+
+    def switch_tab(self):
+        """Switch to the next tab"""
+        self.is_camera_running = False
+
+        new_window = Toplevel()
+        new_window.title("New Window")
+        label = Label(new_window, text="This is a new window")
+        label.pack()
+
+        self.button1.config(text="Open Camera", command=self.open_camera)
 
     def save_gesture(self, frame):
         """Save the current frame as a PNG image"""
