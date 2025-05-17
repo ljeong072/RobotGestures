@@ -31,6 +31,16 @@ class BrowserMacro:
     def __del__(self):
         self.driver.quit()
 
+    def go_back_page(self):
+        self.driver.back()
+
+    def go_forward_page(self):
+        self.driver.forward()
+
+    def quick_open_link(self, link):
+        self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "t")
+        self.driver.get(link)
+
 
 def is_open_palm(hand_landmarks):
     finger_tips = [8, 12, 16, 20]
