@@ -3,3 +3,5 @@ numpy
 opencv-python
 mediapipe
 selenium
+pyautogui
+webdriver-manager
