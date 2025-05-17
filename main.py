@@ -17,7 +17,6 @@ from selenium.webdriver.common.by import By
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
 
-
 modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
 
 
@@ -46,12 +45,28 @@ class App:
 
         self.button1 = Button(self.app, text="Open Camera", command=self.open_camera)
         self.button1.pack()
+        self.button2 = Button(
+            self.app, text="Capture Gesture", command=self.take_screenshot
+        )
+        self.button2.pack()
 
         self.app.mainloop()
 
     def __del__(self):
         self.cap.release()
         cv2.destroyAllWindows()
+
+    def save_gesture(self, frame):
+        """Save the current frame as a PNG image"""
+        return
+
+    def take_screenshot(self):
+        """Take a screenshot of the current frame"""
+        self.is_camera_running = False
+
+        self.save_gesture(self.frame)
+
+        self.button1.config(text="Open Camera", command=self.open_camera)
 
     def open_camera(self):
         """Start the camera capture process"""
@@ -69,17 +84,17 @@ class App:
         if not self.is_camera_running:
             return
 
-        ret, frame = self.cap.read()
+        ret, self.frame = self.cap.read()
         if ret:
             # Convert to RGB (not RGBA) for MediaPipe
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
             results = hands.process(frame_rgb)
 
             # Process hand landmarks if detected
             if results.multi_hand_landmarks:
                 for hand_landmarks in results.multi_hand_landmarks:
                     self.mp_drawing.draw_landmarks(
-                        frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                        self.frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
                     )
                     current_time = time.time()
 
