@@ -45,6 +45,7 @@ class BrowserMacro:
 
     def close_tab(self):
         self.driver.execute_script("window.close('');")
+        self.driver.switch_to.window(self.driver.window_handles[-1])
 
 
 def is_open_palm(hand_landmarks):
