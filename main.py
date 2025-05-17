@@ -3,6 +3,8 @@ import mediapipe as mp
 import time
 import platform
 import pyautogui
+import subprocess
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
@@ -32,6 +34,11 @@ class BrowserMacro:
     def __del__(self):
         self.driver.quit()
 
+    def get_current_index(self):
+        tabs = self.driver.window_handles
+        current_tab = self.driver.current_window_handle
+        return tabs.index(current_tab)
+
     def go_back_page(self):
         self.driver.back()
 
@@ -46,6 +53,32 @@ class BrowserMacro:
     def close_tab(self):
         self.driver.execute_script("window.close('');")
         self.driver.switch_to.window(self.driver.window_handles[-1])
+
+    def switch_previous_tab(self):
+        previous_index = (self.get_current_index() - 1) % len(
+            self.driver.window_handles
+        )
+        self.driver.switch_to.window(self.driver.window_handles[previous_index])
+
+    def switch_next_tab(self):
+        next_index = (self.get_current_index() + 1) % len(self.driver.window_handles)
+        self.driver.switch_to.window(self.driver.window_handles[next_index])
+
+    def open_app(self, app_name):
+        try:
+            if sys.platform == "win32":
+                subprocess.run([app_name], check=True)
+            elif sys.platform == "darwin":
+                subprocess.run(["open", app_name], check=True)
+            elif sys.platform.startswith("linux"):
+                subprocess.run([app_name], check=True)
+            else:
+                print(f"Unsupported operating system: {sys.platform}")
+                return
+        except FileNotFoundError:
+            print(f"Error: Application '{app_name}' not found.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: Failed to open '{app_name}'. Return code: {e.returncode}")
 
 
 def is_open_palm(hand_landmarks):
@@ -68,7 +101,7 @@ def is_fist(hand_landmarks):
     return folded_fingers >= 4
 
 
-browserController = BrowserMacro()
+browser_controller = BrowserMacro()
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -86,23 +119,15 @@ while cap.isOpened():
             if is_open_palm(hand_landmarks):
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Open Palm - Opening new tab")
-                    # Send Ctrl+T or Cmd+T to browser via Selenium
-                    # browserController.driver.back()
-                    browserController.close_tab()
-                    # pyautogui.hotkey(modifier_key, 't')  # Open new tab
-                    # last_action_time = current_time
-                    # actions.key_down(modifier_key).send_keys('t').key_up(modifier_key).perform()
+                    browser_controller.open_app("/Applications/Firefox.app")
                     last_action_time = current_time
 
             elif is_fist(hand_landmarks):
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Fist - Closing tab")
-                    # Send Ctrl+W or Cmd+W to browser via Selenium
-                    browserController.quick_open_link("https://www.youtube.com")
-                    # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     last_action_time = current_time
 
-                    browserController.actions.key_down(modifier_key).send_keys(
+                    browser_controller.actions.key_down(modifier_key).send_keys(
                         "w"
                     ).key_up(modifier_key).perform()
                     last_action_time = current_time
