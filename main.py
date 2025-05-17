@@ -8,6 +8,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 
+
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
@@ -17,13 +18,14 @@ cap = cv2.VideoCapture(0)
 
 last_action_time = 0
 cooldown_seconds = 2
-modifier_key = Keys.COMMAND if platform.system() == 'Darwin' else Keys.CONTROL
+modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
 
 # Setup Selenium WebDriver (make sure chromedriver is in PATH or specify path)
 driver = webdriver.Chrome()  # Or specify Service if needed
 driver.get("https://www.google.com")  # Open some page
 
 actions = ActionChains(driver)
+
 
 def is_open_palm(hand_landmarks):
     finger_tips = [8, 12, 16, 20]
@@ -34,6 +36,7 @@ def is_open_palm(hand_landmarks):
             open_fingers += 1
     return open_fingers >= 4
 
+
 def is_fist(hand_landmarks):
     finger_tips = [8, 12, 16, 20]
     finger_pips = [6, 10, 14, 18]
@@ -42,6 +45,7 @@ def is_fist(hand_landmarks):
         if hand_landmarks.landmark[tip].y > hand_landmarks.landmark[pip].y:
             folded_fingers += 1
     return folded_fingers >= 4
+
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -61,9 +65,9 @@ while cap.isOpened():
                     print("Gesture: Open Palm - Opening new tab")
                     # Send Ctrl+T or Cmd+T to browser via Selenium
                     driver.back()
-                    #pyautogui.hotkey(modifier_key, 't')  # Open new tab
-                    #last_action_time = current_time
-                    #actions.key_down(modifier_key).send_keys('t').key_up(modifier_key).perform()
+                    # pyautogui.hotkey(modifier_key, 't')  # Open new tab
+                    # last_action_time = current_time
+                    # actions.key_down(modifier_key).send_keys('t').key_up(modifier_key).perform()
                     last_action_time = current_time
 
             elif is_fist(hand_landmarks):
@@ -71,10 +75,12 @@ while cap.isOpened():
                     print("Gesture: Fist - Closing tab")
                     # Send Ctrl+W or Cmd+W to browser via Selenium
                     driver.forward()
-                    #pyautogui.hotkey(modifier_key, 't')  # Open new tab
+                    # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     last_action_time = current_time
 
-                    actions.key_down(modifier_key).send_keys('w').key_up(modifier_key).perform()
+                    actions.key_down(modifier_key).send_keys("w").key_up(
+                        modifier_key
+                    ).perform()
                     last_action_time = current_time
 
     cv2.imshow("Hand Recognition", frame)
@@ -87,26 +93,7 @@ cv2.destroyAllWindows()
 driver.quit()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-'''
+"""
 import cv2
 import mediapipe as mp
 import pyautogui
@@ -182,16 +169,10 @@ if is_fist(hand_landmarks):
 
 cap.release()
 cv2.destroyAllWindows()
-'''
+"""
 
 
-
-
-
-
-
-
-'''
+"""
 import cv2
 import mediapipe as mp
 
@@ -251,4 +232,4 @@ def load_known_gestures(data_path="gestures_data"):
 # Release the video capture object and close the OpenCV windows
 cap.release()
 cv2.destroyAllWindows()
-'''
+"""
