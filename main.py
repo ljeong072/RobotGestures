@@ -148,11 +148,13 @@ class App:
             frame_rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
             results = hands.process(frame_rgb)
 
+            display_frame = frame_rgb.copy()
+
             # Process hand landmarks if detected
             if results.multi_hand_landmarks:
                 for hand_landmarks in results.multi_hand_landmarks:
                     self.mp_drawing.draw_landmarks(
-                        self.frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                        display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
                     )
                     current_time = time.time()
 
@@ -177,21 +179,18 @@ class App:
                                 "w"
                             ).key_up(modifier_key).perform()
                             self.last_action_time = current_time
+            # Use the frame with landmarks drawn on it
+            captured_image = Image.fromarray(display_frame)
 
-        # Capture the latest frame and transform to image
-        captured_image = Image.fromarray(frame_rgb)
+            # Convert captured image to photoimage
+            photo_image = ImageTk.PhotoImage(image=captured_image)
 
-        # Convert captured image to photoimage
-        photo_image = ImageTk.PhotoImage(image=captured_image)
+            # Displaying photoimage in the label
+            self.label_widget.photo_image = photo_image
+            self.label_widget.configure(image=photo_image)
 
-        # Displaying photoimage in the label
-        self.label_widget.photo_image = photo_image
-
-        # Configure image in the label
-        self.label_widget.configure(image=photo_image)
-
-        # Schedule the next frame processing after 10ms
-        self.app.after(10, self.process_frame)
+            # Schedule the next frame
+            self.app.after(20, self.process_frame)
 
 
 class BrowserMacro:
