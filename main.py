@@ -8,7 +8,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 
-
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
@@ -20,11 +19,17 @@ last_action_time = 0
 cooldown_seconds = 2
 modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
 
-# Setup Selenium WebDriver (make sure chromedriver is in PATH or specify path)
-driver = webdriver.Chrome()  # Or specify Service if needed
-driver.get("https://www.google.com")  # Open some page
 
-actions = ActionChains(driver)
+class BrowserMacro:
+    def __init__(self):
+        # Setup Selenium WebDriver (make sure chromedriver is in PATH or specify path)
+        self.driver = webdriver.Chrome()  # Or specify Service if needed
+        self.driver.get("https://www.google.com")  # Open some page
+
+        self.actions = ActionChains(self.driver)
+
+    def __del__(self):
+        self.driver.quit()
 
 
 def is_open_palm(hand_landmarks):
@@ -54,6 +59,7 @@ while cap.isOpened():
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
+    browserController = BrowserMacro()
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
@@ -64,7 +70,7 @@ while cap.isOpened():
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Open Palm - Opening new tab")
                     # Send Ctrl+T or Cmd+T to browser via Selenium
-                    driver.back()
+                    browserController.driver.back()
                     # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     # last_action_time = current_time
                     # actions.key_down(modifier_key).send_keys('t').key_up(modifier_key).perform()
@@ -74,13 +80,13 @@ while cap.isOpened():
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Fist - Closing tab")
                     # Send Ctrl+W or Cmd+W to browser via Selenium
-                    driver.forward()
+                    browserController.driver.forward()
                     # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     last_action_time = current_time
 
-                    actions.key_down(modifier_key).send_keys("w").key_up(
-                        modifier_key
-                    ).perform()
+                    browserController.actions.key_down(modifier_key).send_keys(
+                        "w"
+                    ).key_up(modifier_key).perform()
                     last_action_time = current_time
 
     cv2.imshow("Hand Recognition", frame)
@@ -90,7 +96,6 @@ while cap.isOpened():
 
 cap.release()
 cv2.destroyAllWindows()
-driver.quit()
 
 
 """
