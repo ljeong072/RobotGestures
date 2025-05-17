@@ -14,6 +14,7 @@ from tkinter import *
 from PIL import Image, ImageTk
 from pickle import dump, load
 
+
 class Gesture:
     def __init__(self, results):
         self.left = None
@@ -21,25 +22,37 @@ class Gesture:
 
         while results.multi_handedness:
             handedness = results.multi_handedness.pop()
-            index = min(handedness.classification[0].index, len(results.multi_hand_landmarks) - 1)
-            if handedness.classification[0].label == 'Right':
-                right = np.array(Gesture.parse_landmarks(results.multi_hand_landmarks[index]))
+            index = min(
+                handedness.classification[0].index,
+                len(results.multi_hand_landmarks) - 1,
+            )
+            if handedness.classification[0].label == "Right":
+                right = np.array(
+                    Gesture.parse_landmarks(results.multi_hand_landmarks[index])
+                )
                 self.right = right - right[0]
             else:
-                left = np.array(Gesture.parse_landmarks(results.multi_hand_landmarks[index]))
+                left = np.array(
+                    Gesture.parse_landmarks(results.multi_hand_landmarks[index])
+                )
                 self.left = left - left[0]
 
     @staticmethod
     def parse_landmarks(landmarks):
-        return list(map(lambda landmark : (landmark.x, landmark.y, landmark.z), landmarks.landmark))
+        return list(
+            map(
+                lambda landmark: (landmark.x, landmark.y, landmark.z),
+                landmarks.landmark,
+            )
+        )
 
     def save(self, filename):
-        with open(filename, 'wb') as file:
+        with open(filename, "wb") as file:
             dump(self, file)
 
     @staticmethod
     def load(filename):
-        with open(filename, 'rb') as file:
+        with open(filename, "rb") as file:
             return load(file)
 
     def get_difference(self, other):
@@ -48,6 +61,7 @@ class Gesture:
 
         if (self.right is not None) and (other.right is not None):
             return np.mean(np.linalg.norm(self.right - other.right, axis=1))
+
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -61,15 +75,16 @@ class App:
         self.cap = cv2.VideoCapture(0)
         self.mp_drawing = mp.solutions.drawing_utils
 
-        self.width = 1200
-        self.height = 720
-        self.is_camera_running = False
+        self.width = 640
+        self.height = 480
+        self.is_camera_running = True
+        self.frame_count = 0
 
         self.last_action_time = 0
         self.cooldown_seconds = 2
 
-        # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
-        # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
 
         self.app = Tk()
         self.app.title("Gestures Capture")
@@ -88,6 +103,7 @@ class App:
         self.button3 = Button(self.app, text="Open Gestures", command=self.switch_tab)
         self.button3.pack()
 
+        self.open_camera()
         self.app.mainloop()
 
     def __del__(self):
@@ -118,7 +134,7 @@ class App:
     def save_gesture(self, frame):
         """Save the current frame as a PNG image"""
         # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        gestures = os.listdir('./gestures')
+        gestures = os.listdir("./gestures")
         results = hands.process(self.frame)
         Gesture(results).save(f"./gestures/gesture{len(gestures)}.pkl")
         return
@@ -157,10 +173,13 @@ class App:
 
             # Process hand landmarks if detected
             if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
-                    )
+                # Consider skipping some frames for drawing
+                if self.frame_count % 2 == 0:  # Only draw every other frame
+                    for hand_landmarks in results.multi_hand_landmarks:
+                        self.mp_drawing.draw_landmarks(
+                            display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                        )
+
                     current_time = time.time()
 
                     if is_open_palm(hand_landmarks):
@@ -194,8 +213,10 @@ class App:
             self.label_widget.photo_image = photo_image
             self.label_widget.configure(image=photo_image)
 
+            self.frame_count += 1
+
             # Schedule the next frame
-            self.app.after(20, self.process_frame)
+            self.app.after(50, self.process_frame)
 
 
 class BrowserMacro:
