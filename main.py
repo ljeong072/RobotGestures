@@ -63,13 +63,6 @@ class Gesture:
             return np.mean(np.linalg.norm(self.right - other.right, axis=1))
 
 
-# Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
-
-modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
-
-
 class App:
     def __init__(self):
         self.cap = cv2.VideoCapture(0)
@@ -198,11 +191,6 @@ class App:
                             browser_controller.close_tab()
 
                             self.last_action_time = current_time
-
-                            browser_controller.actions.key_down(modifier_key).send_keys(
-                                "w"
-                            ).key_up(modifier_key).perform()
-                            self.last_action_time = current_time
             # Use the frame with landmarks drawn on it
             captured_image = Image.fromarray(display_frame)
 
@@ -262,7 +250,7 @@ class BrowserMacro:
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=2, min_detection_confidence=0.7)
 
-modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
+# modifier_key = Keys.COMMAND if platform.system() == "Darwin" else Keys.CONTROL
 
 gesture_files = os.listdir("./gestures")
 gesture_set = []
