@@ -7,6 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -38,11 +39,13 @@ class BrowserMacro:
         self.driver.forward()
 
     def quick_open_link(self, link):
-        self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "t")
+        # self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "t")
+        self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.COMMAND + "t")
         self.driver.get(link)
 
     def close_tab(self):
-        self.driver.find_element_by_tag_name("body").send_keys(Keys.CONTROL + "w")
+        # self.driver.find_element_by_tag_name("body").send_keys(Keys.COMMAND + "w")
+        self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.COMMAND + "w")
 
 
 def is_open_palm(hand_landmarks):
@@ -65,6 +68,8 @@ def is_fist(hand_landmarks):
     return folded_fingers >= 4
 
 
+browserController = BrowserMacro()
+
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -72,7 +77,6 @@ while cap.isOpened():
 
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = hands.process(frame_rgb)
-    browserController = BrowserMacro()
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
@@ -83,7 +87,8 @@ while cap.isOpened():
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Open Palm - Opening new tab")
                     # Send Ctrl+T or Cmd+T to browser via Selenium
-                    browserController.driver.back()
+                    # browserController.driver.back()
+                    browserController.close_tab()
                     # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     # last_action_time = current_time
                     # actions.key_down(modifier_key).send_keys('t').key_up(modifier_key).perform()
@@ -93,7 +98,7 @@ while cap.isOpened():
                 if current_time - last_action_time > cooldown_seconds:
                     print("Gesture: Fist - Closing tab")
                     # Send Ctrl+W or Cmd+W to browser via Selenium
-                    browserController.driver.forward()
+                    browserController.quick_open_link("https://www.youtube.com")
                     # pyautogui.hotkey(modifier_key, 't')  # Open new tab
                     last_action_time = current_time
 
