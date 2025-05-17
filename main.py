@@ -143,16 +143,20 @@ class App:
         """Start the camera capture process"""
         self.is_camera_running = True
         self.process_frame()
-        self.button1.config(text="Close Camera", command=self.close_camera)
 
     def close_camera(self):
         """Stop the camera capture process"""
         self.is_camera_running = False
-        self.button1.config(text="Open Camera", command=self.open_camera)
 
     def process_frame(self):
         """Process a single frame and schedule the next one"""
         if not self.is_camera_running:
+            self.app.after(50, self.process_frame)
+            return
+
+        if self.frame_count % 2 == 0:  # Only draw every other frame
+            self.frame_count += 1
+            self.app.after(50, self.process_frame)
             return
 
         ret, self.frame = self.cap.read()
@@ -166,10 +170,11 @@ class App:
             # Process hand landmarks if detected
             if results.multi_hand_landmarks:
                 # Consider skipping some frames for drawing
-                for hand_landmarks in results.multi_hand_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
-                    )
+                if self.frame_count % 2 == 0:  # Only draw every other frame
+                    for hand_landmarks in results.multi_hand_landmarks:
+                        self.mp_drawing.draw_landmarks(
+                            display_frame, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                        )
 
                 current_time = time.time()
 
@@ -198,6 +203,9 @@ class App:
 
             # Schedule the next frame
             self.app.after(50, self.process_frame)
+
+        # Update the frame count
+        self.frame_count += 1
 
 
 class BrowserMacro:
